@@ -9,12 +9,13 @@ import {
   Menu,
   Newspaper,
   Plus,
+  Rocket,
   Save,
   Trash2,
   Users,
   X
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { LogoutButton } from "@/components/admin/logout-button";
 import {
   adminTableConfigs,
@@ -28,6 +29,11 @@ export type AdminRow = Record<string, string | null>;
 export type AdminRowsByTable = Record<AdminTableKey, AdminRow[]>;
 
 type ActiveTab = "overview" | AdminTableKey;
+
+const launchStartTime = new Date("2026-01-01T00:00:00-05:00").getTime();
+const launchDate = new Date("2026-10-31T23:59:59-04:00");
+const launchTime = launchDate.getTime();
+const launchWindow = launchTime - launchStartTime;
 
 const navItems: Array<{ key: ActiveTab; label: string; icon: React.ElementType }> = [
   { key: "overview", label: "Overview", icon: Home },
@@ -93,6 +99,62 @@ function MiniBarChart({ rows }: { rows: AdminRowsByTable }) {
             <strong>{item.value}</strong>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function getLaunchCountdown() {
+  const now = Date.now();
+  const remainingMs = Math.max(launchTime - now, 0);
+  const remainingPercent = launchWindow > 0 ? Math.max(Math.min((remainingMs / launchWindow) * 100, 100), 0) : 0;
+  const days = Math.floor(remainingMs / 86_400_000);
+  const hours = Math.floor((remainingMs % 86_400_000) / 3_600_000);
+  const minutes = Math.floor((remainingMs % 3_600_000) / 60_000);
+  const seconds = Math.floor((remainingMs % 60_000) / 1_000);
+  const colorMode = remainingPercent < 30 ? "red" : remainingPercent < 50 ? "orange" : "green";
+
+  return { days, hours, minutes, seconds, remainingPercent, colorMode };
+}
+
+function LaunchCountdown() {
+  const [countdown, setCountdown] = useState<ReturnType<typeof getLaunchCountdown> | null>(null);
+
+  useEffect(() => {
+    setCountdown(getLaunchCountdown());
+    const interval = window.setInterval(() => setCountdown(getLaunchCountdown()), 1000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  const progress = countdown?.remainingPercent ?? 0;
+
+  return (
+    <div className={`admin-countdown-card ${countdown?.colorMode ?? "green"}`}>
+      <div className="admin-countdown-copy">
+        <span className="admin-kicker">Launch Countdown</span>
+        <h2>October 31, 2026</h2>
+        <p>Time remaining until PaDC&apos;s target launch date.</p>
+      </div>
+      <div className="admin-countdown-clock" style={{ "--countdown-progress": `${progress}%` } as React.CSSProperties}>
+        <div className="admin-countdown-orbit">
+          <Rocket size={22} />
+        </div>
+        <strong>{countdown ? countdown.days : "--"}</strong>
+        <span>days</span>
+      </div>
+      <div className="admin-countdown-units">
+        <div>
+          <strong>{countdown ? String(countdown.hours).padStart(2, "0") : "--"}</strong>
+          <span>Hours</span>
+        </div>
+        <div>
+          <strong>{countdown ? String(countdown.minutes).padStart(2, "0") : "--"}</strong>
+          <span>Minutes</span>
+        </div>
+        <div>
+          <strong>{countdown ? String(countdown.seconds).padStart(2, "0") : "--"}</strong>
+          <span>Seconds</span>
+        </div>
       </div>
     </div>
   );
@@ -197,7 +259,7 @@ function RecordsTable({
   onUpdate: (table: AdminTableKey, id: string, values: Record<string, string>) => Promise<void>;
   onDelete: (table: AdminTableKey, id: string) => Promise<void>;
 }) {
-  const [showCreate, setShowCreate] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const visibleFields = config.fields.filter((field) => field.table);
   const activeRows = rows.filter((row) => row.status !== "archived" && row.status !== "inactive").length;
@@ -216,23 +278,10 @@ function RecordsTable({
             <h2>{config.label}</h2>
             <p>{config.description}</p>
           </div>
-          <button className="admin-primary-button" type="button" onClick={() => setShowCreate((value) => !value)}>
+          <button className="admin-primary-button" type="button" onClick={() => setCreating(true)}>
             <Plus size={16} /> Add {config.singular}
           </button>
         </div>
-        {showCreate ? (
-          <div className="admin-create-panel">
-            <RecordForm
-              config={config}
-              submitLabel={`Create ${config.singular}`}
-              onCancel={() => setShowCreate(false)}
-              onSubmit={async (values) => {
-                await onCreate(config.key, values);
-                setShowCreate(false);
-              }}
-            />
-          </div>
-        ) : null}
         <div className="admin-table-wrap">
           <table>
             <thead>
@@ -272,33 +321,72 @@ function RecordsTable({
             </tbody>
           </table>
         </div>
+        {creating ? (
+          <RecordModal
+            title={`Add ${config.singular}`}
+            description={`Create a new ${config.singular} record in Supabase.`}
+            onClose={() => setCreating(false)}
+          >
+            <RecordForm
+              config={config}
+              submitLabel={`Create ${config.singular}`}
+              onCancel={() => setCreating(false)}
+              onSubmit={async (values) => {
+                await onCreate(config.key, values);
+                setCreating(false);
+              }}
+            />
+          </RecordModal>
+        ) : null}
         {editingId ? (
-          <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
-            <div className="admin-modal">
-              <div className="admin-panel-heading">
-                <div>
-                  <h2>Edit {config.singular}</h2>
-                  <p>Update the Supabase record and refresh the dashboard state.</p>
-                </div>
-                <button className="admin-icon-button" type="button" onClick={() => setEditingId(null)}>
-                  <X size={18} />
-                </button>
-              </div>
-              <RecordForm
-                config={config}
-                initial={rows.find((row) => row.id === editingId)}
-                submitLabel="Save changes"
-                onCancel={() => setEditingId(null)}
-                onSubmit={async (values) => {
-                  await onUpdate(config.key, editingId, values);
-                  setEditingId(null);
-                }}
-              />
-            </div>
-          </div>
+          <RecordModal
+            title={`Edit ${config.singular}`}
+            description="Update the Supabase record and refresh the dashboard state."
+            onClose={() => setEditingId(null)}
+          >
+            <RecordForm
+              config={config}
+              initial={rows.find((row) => row.id === editingId)}
+              submitLabel="Save changes"
+              onCancel={() => setEditingId(null)}
+              onSubmit={async (values) => {
+                await onUpdate(config.key, editingId, values);
+                setEditingId(null);
+              }}
+            />
+          </RecordModal>
         ) : null}
       </div>
     </section>
+  );
+}
+
+function RecordModal({
+  title,
+  description,
+  children,
+  onClose
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+  onClose: () => void;
+}) {
+  return (
+    <div className="admin-modal-backdrop" role="dialog" aria-modal="true">
+      <div className="admin-modal">
+        <div className="admin-panel-heading">
+          <div>
+            <h2>{title}</h2>
+            <p>{description}</p>
+          </div>
+          <button className="admin-icon-button" type="button" onClick={onClose} aria-label="Close modal">
+            <X size={18} />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
   );
 }
 
@@ -309,6 +397,7 @@ function Overview({
   rows: AdminRowsByTable;
   onCreate: (table: AdminTableKey, values: Record<string, string>) => Promise<void>;
 }) {
+  const [quickCreateTable, setQuickCreateTable] = useState<AdminTableKey | null>(null);
   const totalRecords = adminTableKeys.reduce((sum, key) => sum + (rows[key]?.length ?? 0), 0);
   const recent = adminTableKeys
     .flatMap((key) => (rows[key] ?? []).map((row) => ({ key, row })))
@@ -323,6 +412,8 @@ function Overview({
         <StatCard label="Partners" value={rows.partner_inquiries.length} detail="Partner and funder inquiries" />
         <StatCard label="Board members" value={rows.board_members.length} detail="Leadership records" />
       </div>
+
+      <LaunchCountdown />
 
       <div className="admin-overview-grid">
         <MiniBarChart rows={rows} />
@@ -360,10 +451,30 @@ function Overview({
           {(["driver_leads", "partner_inquiries", "board_members"] as AdminTableKey[]).map((key) => (
             <div className="admin-quick-card" key={key}>
               <h3>Add {adminTableConfigs[key].singular}</h3>
-              <RecordForm config={adminTableConfigs[key]} submitLabel="Create" onSubmit={(values) => onCreate(key, values)} />
+              <p>{adminTableConfigs[key].description}</p>
+              <button className="admin-primary-button" type="button" onClick={() => setQuickCreateTable(key)}>
+                <Plus size={16} /> Add {adminTableConfigs[key].singular}
+              </button>
             </div>
           ))}
         </div>
+        {quickCreateTable ? (
+          <RecordModal
+            title={`Add ${adminTableConfigs[quickCreateTable].singular}`}
+            description={`Create a new ${adminTableConfigs[quickCreateTable].singular} record from the overview.`}
+            onClose={() => setQuickCreateTable(null)}
+          >
+            <RecordForm
+              config={adminTableConfigs[quickCreateTable]}
+              submitLabel="Create"
+              onCancel={() => setQuickCreateTable(null)}
+              onSubmit={async (values) => {
+                await onCreate(quickCreateTable, values);
+                setQuickCreateTable(null);
+              }}
+            />
+          </RecordModal>
+        ) : null}
       </div>
     </section>
   );
@@ -440,7 +551,13 @@ export function AdminDashboard({ initialRows }: { initialRows: AdminRowsByTable 
             </strong>
             {!collapsed ? <small>Admin Console</small> : null}
           </div>
-          <button className="admin-icon-button desktop-only" type="button" onClick={() => setCollapsed((value) => !value)}>
+          <button
+            className="admin-icon-button admin-sidebar-toggle desktop-only"
+            type="button"
+            onClick={() => setCollapsed((value) => !value)}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
             {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
           </button>
         </div>
@@ -454,6 +571,8 @@ export function AdminDashboard({ initialRows }: { initialRows: AdminRowsByTable 
                 className={active ? "active" : ""}
                 key={item.key}
                 type="button"
+                aria-label={item.label}
+                title={item.label}
                 onClick={() => {
                   setActiveTab(item.key);
                   setMobileOpen(false);
