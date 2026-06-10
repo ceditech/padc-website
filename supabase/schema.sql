@@ -61,9 +61,26 @@ create table if not exists public.newsletter_subscribers (
 
 create index if not exists newsletter_subscribers_created_at_idx on public.newsletter_subscribers (created_at desc);
 
+create table if not exists public.board_members (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  first_name text not null,
+  last_name text not null,
+  role text not null,
+  organization text,
+  email text,
+  phone text,
+  bio text,
+  status text not null default 'active'
+);
+
+create index if not exists board_members_created_at_idx on public.board_members (created_at desc);
+create index if not exists board_members_status_idx on public.board_members (status);
+
 alter table public.driver_leads enable row level security;
 alter table public.partner_inquiries enable row level security;
 alter table public.contact_messages enable row level security;
 alter table public.newsletter_subscribers enable row level security;
+alter table public.board_members enable row level security;
 
 -- API routes use the server-only service role key. No public client policies are needed for this MVP.
