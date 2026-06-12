@@ -12,6 +12,9 @@ export type AdminField = {
   label: string;
   type?: AdminFieldType;
   required?: boolean;
+  createRequired?: boolean;
+  persisted?: boolean;
+  form?: boolean;
   options?: string[];
   table?: boolean;
   overview?: boolean;
@@ -101,6 +104,7 @@ export const adminTableConfigs: Record<AdminTableKey, AdminTableConfig> = {
     singular: "subscriber",
     description: "Newsletter subscribers and email audience status.",
     fields: [
+      { key: "name", label: "Name", required: true, table: true, overview: true },
       { key: "email", label: "Email", type: "email", required: true, table: true, overview: true },
       { key: "source", label: "Source", table: true },
       { key: "status", label: "Status", type: "select", options: ["active", "unsubscribed", "bounced"], table: true }
@@ -116,10 +120,12 @@ export const adminTableConfigs: Record<AdminTableKey, AdminTableConfig> = {
       { key: "last_name", label: "Last name", required: true, table: true, overview: true },
       { key: "role", label: "Role", required: true, table: true, overview: true },
       { key: "organization", label: "Organization", table: true },
-      { key: "email", label: "Email", type: "email", table: true },
+      { key: "email", label: "Email", type: "email", required: true, table: true },
       { key: "phone", label: "Phone", type: "tel" },
       { key: "bio", label: "Bio", type: "textarea" },
-      { key: "status", label: "Status", type: "select", options: ["active", "inactive"], table: true }
+      { key: "status", label: "Status", type: "select", options: ["active", "inactive"], table: true },
+      { key: "auth_status", label: "Portal access", table: true, form: false },
+      { key: "user_id", label: "Auth user", form: false }
     ]
   }
 };
@@ -135,6 +141,7 @@ export function sanitizeAdminRecord(table: AdminTableKey, payload: unknown, opti
   const input = typeof payload === "object" && payload !== null ? (payload as Record<string, unknown>) : {};
 
   return config.fields.reduce<Record<string, string | null>>((record, field) => {
+    if (field.persisted === false || field.form === false) return record;
     if (options?.partial && !(field.key in input)) {
       return record;
     }
@@ -144,6 +151,10 @@ export function sanitizeAdminRecord(table: AdminTableKey, payload: unknown, opti
     record[field.key] = normalized || null;
     return record;
   }, {});
+}
+
+export function adminSelectColumns(table: AdminTableKey) {
+  return ["id", "created_at", ...adminTableConfigs[table].fields.filter((field) => field.persisted !== false).map((field) => field.key)].join(",");
 }
 
 export function validateAdminRecord(

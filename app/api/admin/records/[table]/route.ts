@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   getAdminTableConfig,
+  adminSelectColumns,
   sanitizeAdminRecord,
   validateAdminRecord,
   type AdminTableKey
@@ -28,7 +29,7 @@ export async function GET(_request: Request, context: { params: Promise<{ table:
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from(config.key)
-    .select("*")
+    .select(adminSelectColumns(config.key))
     .order("created_at", { ascending: false })
     .limit(100);
 
@@ -58,8 +59,13 @@ export async function POST(request: Request, context: { params: Promise<{ table:
     return NextResponse.json({ error: validationError }, { status: 400 });
   }
 
+  if (config.key === "board_members") {
+    record.email = record.email?.toLowerCase() ?? null;
+    record.auth_status = "not_invited";
+  }
+
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase.from(config.key).insert(record).select("*").single();
+  const { data, error } = await supabase.from(config.key).insert(record).select(adminSelectColumns(config.key)).single();
 
   if (error) {
     return databaseErrorResponse(`Unable to create ${config.singular}`, error);

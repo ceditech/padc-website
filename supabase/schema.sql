@@ -54,10 +54,13 @@ create index if not exists contact_messages_status_idx on public.contact_message
 create table if not exists public.newsletter_subscribers (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),
+  name text,
   email text not null unique,
   source text not null default 'website',
   status text not null default 'active'
 );
+
+alter table public.newsletter_subscribers add column if not exists name text;
 
 create index if not exists newsletter_subscribers_created_at_idx on public.newsletter_subscribers (created_at desc);
 
@@ -71,11 +74,22 @@ create table if not exists public.board_members (
   email text,
   phone text,
   bio text,
+  password_hash text,
+  last_login_at timestamptz,
   status text not null default 'active'
 );
 
+alter table public.board_members add column if not exists user_id uuid references auth.users(id) on delete set null;
+alter table public.board_members add column if not exists auth_status text not null default 'not_invited';
+alter table public.board_members add column if not exists invited_at timestamptz;
+alter table public.board_members add column if not exists invitation_accepted_at timestamptz;
+alter table public.board_members add column if not exists last_login_at timestamptz;
+alter table public.board_members drop column if exists password_hash;
+
 create index if not exists board_members_created_at_idx on public.board_members (created_at desc);
 create index if not exists board_members_status_idx on public.board_members (status);
+create unique index if not exists board_members_email_unique_idx on public.board_members (lower(email)) where email is not null;
+create unique index if not exists board_members_user_id_unique_idx on public.board_members (user_id) where user_id is not null;
 
 alter table public.driver_leads enable row level security;
 alter table public.partner_inquiries enable row level security;

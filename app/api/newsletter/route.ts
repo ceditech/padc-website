@@ -12,14 +12,18 @@ export async function POST(request: Request) {
   }
 
   const supabase = getSupabaseAdmin();
-  const { error } = await supabase.from("newsletter_subscribers").upsert(
-    {
-      email: parsed.data.email.toLowerCase(),
-      source: "website",
-      status: "active"
-    },
-    { onConflict: "email" }
-  );
+  const subscriber = {
+    name: parsed.data.name,
+    email: parsed.data.email.toLowerCase(),
+    source: "website",
+    status: "active"
+  };
+  let { error } = await supabase.from("newsletter_subscribers").upsert(subscriber, { onConflict: "email" });
+
+  if (error?.message.toLowerCase().includes("fetch failed")) {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    ({ error } = await supabase.from("newsletter_subscribers").upsert(subscriber, { onConflict: "email" }));
+  }
 
   if (error) {
     return databaseErrorResponse("Unable to subscribe", error);

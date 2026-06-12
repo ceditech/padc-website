@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 
 const labels: Record<string, string> = {
+  name: "Name",
   email: "Email address",
   firstName: "First name",
   lastName: "Last name",

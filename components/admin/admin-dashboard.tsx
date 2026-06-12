@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Home,
   Mail,
+  MailPlus,
   Menu,
   Newspaper,
   Plus,
@@ -200,13 +201,18 @@ function RecordForm({
   return (
     <form className="admin-record-form" onSubmit={handleSubmit}>
       <div className="admin-form-grid">
-        {config.fields.map((field) => (
+        {config.fields.filter((field) => field.form !== false).map((field) => (
           <label className={field.type === "textarea" ? "admin-field admin-field-wide" : "admin-field"} key={field.key}>
             <span>
               {field.label}
-              {field.required ? " *" : ""}
+              {field.required || (!initial && field.createRequired) ? " *" : ""}
             </span>
-            <AdminInput field={field} value={values[field.key] ?? ""} onChange={(value) => setValues((current) => ({ ...current, [field.key]: value }))} />
+            <AdminInput
+              field={field}
+              value={values[field.key] ?? ""}
+              required={Boolean(field.required || (!initial && field.createRequired))}
+              onChange={(value) => setValues((current) => ({ ...current, [field.key]: value }))}
+            />
           </label>
         ))}
       </div>
@@ -225,14 +231,24 @@ function RecordForm({
   );
 }
 
-function AdminInput({ field, value, onChange }: { field: AdminField; value: string; onChange: (value: string) => void }) {
+function AdminInput({
+  field,
+  value,
+  required,
+  onChange
+}: {
+  field: AdminField;
+  value: string;
+  required: boolean;
+  onChange: (value: string) => void;
+}) {
   if (field.type === "textarea") {
-    return <textarea value={value} onChange={(event) => onChange(event.target.value)} />;
+    return <textarea value={value} required={required} onChange={(event) => onChange(event.target.value)} />;
   }
 
   if (field.type === "select") {
     return (
-      <select value={value} onChange={(event) => onChange(event.target.value)}>
+      <select value={value} required={required} onChange={(event) => onChange(event.target.value)}>
         <option value="">Select...</option>
         {field.options?.map((option) => (
           <option key={option} value={option}>
@@ -243,7 +259,14 @@ function AdminInput({ field, value, onChange }: { field: AdminField; value: stri
     );
   }
 
-  return <input type={field.type ?? "text"} value={value} onChange={(event) => onChange(event.target.value)} />;
+  return (
+    <input
+      type={field.type ?? "text"}
+      value={value}
+      required={required}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  );
 }
 
 function RecordsTable({
@@ -251,16 +274,20 @@ function RecordsTable({
   rows,
   onCreate,
   onUpdate,
-  onDelete
+  onDelete,
+  onInvite
 }: {
   config: AdminTableConfig;
   rows: AdminRow[];
   onCreate: (table: AdminTableKey, values: Record<string, string>) => Promise<void>;
   onUpdate: (table: AdminTableKey, id: string, values: Record<string, string>) => Promise<void>;
   onDelete: (table: AdminTableKey, id: string) => Promise<void>;
+  onInvite: (id: string) => Promise<void>;
 }) {
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [invitingId, setInvitingId] = useState<string | null>(null);
+  const [inviteError, setInviteError] = useState("");
   const visibleFields = config.fields.filter((field) => field.table);
   const activeRows = rows.filter((row) => row.status !== "archived" && row.status !== "inactive").length;
 
@@ -303,6 +330,34 @@ function RecordsTable({
                     ))}
                     <td>
                       <div className="admin-row-actions">
+                        {config.key === "board_members" ? (
+                          <button
+                            className="admin-ghost-button"
+                            type="button"
+                            disabled={row.auth_status === "active" || invitingId === row.id}
+                            title={row.auth_status === "active" ? "Portal access is active" : "Send a secure account invitation"}
+                            onClick={async () => {
+                              setInvitingId(String(row.id));
+                              setInviteError("");
+                              try {
+                                await onInvite(String(row.id));
+                              } catch (err) {
+                                setInviteError(err instanceof Error ? err.message : "Unable to send invitation.");
+                              } finally {
+                                setInvitingId(null);
+                              }
+                            }}
+                          >
+                            <MailPlus size={15} />
+                            {row.auth_status === "active"
+                              ? "Access active"
+                              : invitingId === row.id
+                                ? "Sending..."
+                                : row.auth_status === "invited"
+                                  ? "Resend invite"
+                                  : "Send invite"}
+                          </button>
+                        ) : null}
                         <button className="admin-ghost-button" type="button" onClick={() => setEditingId(String(row.id))}>
                           Edit
                         </button>
@@ -321,6 +376,7 @@ function RecordsTable({
             </tbody>
           </table>
         </div>
+        {inviteError ? <div className="admin-error">{inviteError}</div> : null}
         {creating ? (
           <RecordModal
             title={`Add ${config.singular}`}
@@ -541,6 +597,16 @@ export function AdminDashboard({ initialRows }: { initialRows: AdminRowsByTable 
     setRows((current) => ({ ...current, [table]: current[table].filter((row) => row.id !== id) }));
   }
 
+  async function inviteBoardMember(id: string) {
+    const response = await fetch(`/api/admin/board-members/${id}/invite`, { method: "POST" });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error ?? "Unable to send invitation.");
+    setRows((current) => ({
+      ...current,
+      board_members: current.board_members.map((row) => (row.id === id ? result.row : row))
+    }));
+  }
+
   return (
     <main className="admin-dashboard-shell">
       <aside className={`admin-sidebar ${collapsed ? "collapsed" : ""} ${mobileOpen ? "mobile-open" : ""}`}>
@@ -609,6 +675,7 @@ export function AdminDashboard({ initialRows }: { initialRows: AdminRowsByTable 
             onCreate={createRecord}
             onUpdate={updateRecord}
             onDelete={deleteRecord}
+            onInvite={inviteBoardMember}
           />
         )}
       </section>

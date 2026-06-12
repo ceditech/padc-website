@@ -29,6 +29,10 @@ export function NewsletterForm() {
   return (
     <form className="form-card" onSubmit={onSubmit}>
       <div className="field">
+        <label htmlFor="newsletter-name">Name (first or full name)</label>
+        <input id="newsletter-name" name="name" type="text" autoComplete="name" maxLength={120} required />
+      </div>
+      <div className="field">
         <label htmlFor="newsletter-email">Email address</label>
         <input id="newsletter-email" name="email" type="email" autoComplete="email" required />
       </div>
