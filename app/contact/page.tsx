@@ -39,7 +39,7 @@ export default function ContactPage() {
             </article>
             <article className="card">
               <h3>Partners</h3>
-              <p>Use the partner form or email partners@padc.coop for funding and collaboration conversations.</p>
+              <p>Use the partner form or email pennsylvaniadrivers@gmail.com for funding and collaboration conversations.</p>
               <Link className="btn btn-navy" href="/partners#partner-form">
                 Partner form
               </Link>
@@ -67,9 +67,9 @@ export default function ContactPage() {
             <div className="card">
               <h3>Direct emails</h3>
               <p>
-                General: <a href="mailto:info@padc.coop">info@padc.coop</a>
+                General: <a href="mailto:padccoop@gmail.com">padccoop@gmail.com</a>
                 <br />
-                Partners: <a href="mailto:partners@padc.coop">partners@padc.coop</a>
+                Partners: <a href="mailto:pennsylvaniadrivers@gmail.com">pennsylvaniadrivers@gmail.com</a>
               </p>
             </div>
           </div>

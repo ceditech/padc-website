@@ -12,7 +12,7 @@ export function SiteFooter() {
             PaDC is building a driver-owned rideshare cooperative in Philadelphia,
             keeping ownership, voice, and wealth in the hands of local drivers.
           </p>
-          <a href="mailto:info@padc.coop">info@padc.coop</a>
+          <a href="mailto:padccoop@gmail.com">padccoop@gmail.com</a>
         </div>
         <div>
           <h4>Explore</h4>
@@ -30,12 +30,12 @@ export function SiteFooter() {
         </div>
         <div>
           <h4>Status</h4>
-          <a href="mailto:partners@padc.coop">partners@padc.coop</a>
+          <a href="mailto:pennsylvaniadrivers@gmail.com">pennsylvaniadrivers@gmail.com</a>
           <span style={{ display: "block", color: "rgba(255,255,255,.68)", fontSize: ".9rem" }}>
             In formation
           </span>
           <span style={{ display: "block", color: "rgba(255,255,255,.46)", marginTop: "1.5rem", fontSize: ".78rem" }}>
-            © 2026 Pennsylvania Driver Cooperative
+            © 2026 Pennsylvania Drivers Cooperative
           </span>
         </div>
       </div>

@@ -1,6 +1,6 @@
 # PaDC Website MVP
 
-Next.js/Vercel MVP for the Pennsylvania Driver Cooperative website.
+Next.js/Vercel MVP for the Pennsylvania Drivers Cooperative website.
 
 ## Stack
 

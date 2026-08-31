@@ -58,7 +58,7 @@ export default function AdminLoginPage() {
       <section className="admin-login-layout">
         <div className="admin-login-mission">
           <div className="admin-login-brand">Pa<span>DC</span> <small>Coop</small></div>
-          <span className="admin-login-kicker">Pennsylvania Driver Cooperative</span>
+          <span className="admin-login-kicker">Pennsylvania Drivers Cooperative</span>
           <h1>Shared leadership for a driver-owned future.</h1>
           <p>
             The PaDC administration workspace helps trusted board members coordinate outreach, partnerships,

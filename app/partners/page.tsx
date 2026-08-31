@@ -85,7 +85,7 @@ export default function PartnersPage() {
               <h3>Email directly</h3>
               <p>
                 For immediate partner inquiries, email{" "}
-                <a href="mailto:partners@padc.coop">partners@padc.coop</a>.
+                <a href="mailto:pennsylvaniadrivers@gmail.com">pennsylvaniadrivers@gmail.com</a>.
               </p>
             </div>
           </div>
