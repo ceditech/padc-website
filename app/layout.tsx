@@ -10,7 +10,7 @@ const montserrat = Montserrat({
 
 export const metadata: Metadata = {
   title: {
-    default: "PaDC - Pennsylvania Driver Cooperative",
+    default: "PaDC - Pennsylvania Drivers Cooperative",
     template: "%s | PaDC"
   },
   description:

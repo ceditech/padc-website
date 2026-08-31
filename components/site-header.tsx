@@ -23,7 +23,7 @@ export function SiteHeader() {
           <div className="brand-mark">
             Pa<span>DC</span>
           </div>
-          <div className="brand-sub">Pennsylvania Driver Cooperative</div>
+          <div className="brand-sub">Pennsylvania Drivers Cooperative</div>
         </Link>
         <button
           className="mobile-toggle"
